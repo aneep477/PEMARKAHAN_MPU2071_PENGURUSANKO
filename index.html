@@ -194,6 +194,7 @@
 
          <!-- INPUT MARKAH DENGAN VALIDASI -->
          <div class="grid grid-cols-3 gap-3 mb-2">
+           <!-- Ujian -->
            <div class="relative">
              <label class="text-xs text-gray-600 font-bold">Ujian (Max: 30)</label>
              <input type="number" id="ujian" step="0.1" 
@@ -201,25 +202,42 @@
                 oninput="validateInput(this, 30); calculateTotal()">
              <p id="err-ujian" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 30)!</p>
            </div>
-           <div>
-             <label class="text-xs text-gray-600">HP5</label>
-             <input type="number" id="hp5" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           <!-- HP5 -->
+           <div class="relative">
+             <label class="text-xs text-gray-600 font-bold">HP5 (Max: 30)</label>
+             <input type="number" id="hp5" step="0.1" 
+                class="w-full border rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                oninput="validateInput(this, 30); calculateTotal()">
+             <p id="err-hp5" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 30)!</p>
            </div>
-           <div>
-             <label class="text-xs text-gray-600">HP6</label>
-             <input type="number" id="hp6" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           <!-- HP6 -->
+           <div class="relative">
+             <label class="text-xs text-gray-600 font-bold">HP6 (Max: 10)</label>
+             <input type="number" id="hp6" step="0.1" 
+                class="w-full border rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                oninput="validateInput(this, 10); calculateTotal()">
+             <p id="err-hp6" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 10)!</p>
            </div>
          </div>
          
          <div class="grid grid-cols-3 gap-3 mb-4">
-            <div>
-              <label class="text-xs text-gray-600">HP8</label>
-              <input type="number" id="hp8" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+            <!-- HP8 -->
+            <div class="relative">
+              <label class="text-xs text-gray-600 font-bold">HP8 (Max: 20)</label>
+              <input type="number" id="hp8" step="0.1" 
+                 class="w-full border rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                 oninput="validateInput(this, 20); calculateTotal()">
+              <p id="err-hp8" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 20)!</p>
             </div>
-            <div>
-              <label class="text-xs text-gray-600">HP11</label>
-              <input type="number" id="hp11" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+            <!-- HP11 -->
+            <div class="relative">
+              <label class="text-xs text-gray-600 font-bold">HP11 (Max: 10)</label>
+              <input type="number" id="hp11" step="0.1" 
+                 class="w-full border rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                 oninput="validateInput(this, 10); calculateTotal()">
+              <p id="err-hp11" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 10)!</p>
             </div>
+            <!-- Total -->
             <div class="bg-gray-100 p-2 rounded text-center">
                 <label class="text-xs font-bold text-gray-800">Jumlah Besar</label>
                 <div id="displayTotal" class="text-lg font-bold text-blue-600">0</div>
@@ -245,7 +263,10 @@
     // Had Markah untuk Validasi
     const LIMITS = {
         ujian: 30,
-        // Lain-lain boleh set 100
+        hp5: 30,
+        hp6: 10,
+        hp8: 20,
+        hp11: 10
     };
 
     let currentUser = { role: null, name: null };
@@ -470,9 +491,13 @@
         document.getElementById('modalTitle').textContent = "Tambah Pelajar Baru";
         document.getElementById('modalForm').classList.remove('hidden');
         
-        // Reset Error UI
-        document.getElementById('ujian').classList.remove('border-red-500', 'bg-red-50');
-        document.getElementById('err-ujian').classList.add('hidden');
+        // Reset Error UI untuk semua input
+        ['ujian', 'hp5', 'hp6', 'hp8', 'hp11'].forEach(id => {
+            const el = document.getElementById(id);
+            const errEl = document.getElementById('err-' + id);
+            if (el) el.classList.remove('border-red-500', 'bg-red-50');
+            if (errEl) errEl.classList.add('hidden');
+        });
 
         if (currentUser.role === 'lecturer') {
             document.getElementById('lecturer').value = currentUser.name;
@@ -523,13 +548,22 @@
         e.preventDefault();
         
         // --- VALIDASI TERAKHIR SEBELUM HANTAR ---
-        const ujianInput = document.getElementById('ujian');
-        const ujianVal = parseFloat(ujianInput.value) || 0;
+        const inputs = [
+            { id: 'ujian', max: LIMITS.ujian },
+            { id: 'hp5', max: LIMITS.hp5 },
+            { id: 'hp6', max: LIMITS.hp6 },
+            { id: 'hp8', max: LIMITS.hp8 },
+            { id: 'hp11', max: LIMITS.hp11 }
+        ];
 
-        if (ujianVal > LIMITS.ujian) {
-            alert(`Ralat: Markah Ujian tidak boleh melebihi ${LIMITS.ujian}! Sila betulkan.`);
-            ujianInput.focus();
-            return; // STOP DI SINI
+        for (const item of inputs) {
+            const el = document.getElementById(item.id);
+            const val = parseFloat(el.value) || 0;
+            if (val > item.max) {
+                alert(`Ralat: Markah ${item.id.toUpperCase()} tidak boleh melebihi ${item.max}! Sila betulkan.`);
+                el.focus();
+                return; // STOP DI SINI
+            }
         }
 
         const btn = document.getElementById('btnSave');
