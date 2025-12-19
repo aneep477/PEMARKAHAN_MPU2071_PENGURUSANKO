@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistem Pengurusan Markah</title>
-  <!-- Menggunakan Tailwind CSS untuk penggayaan pantas -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Menggunakan Font Awesome untuk ikon -->
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Chart.js untuk Analisis -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     /* Custom loader */
     .loader {
@@ -36,27 +38,21 @@
 
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="mb-4">
-          <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
-            ID Pengguna / No. Kad Pengenalan
-          </label>
+          <label class="block text-gray-700 text-sm font-bold mb-2">ID Pengguna / No. KP</label>
           <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
             id="username" type="text" placeholder="Contoh: admin atau 800101..." required>
         </div>
         
         <div class="mb-6">
-          <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
-            Kata Laluan
-          </label>
+          <label class="block text-gray-700 text-sm font-bold mb-2">Kata Laluan</label>
           <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" 
             id="password" type="password" placeholder="Kosongkan jika pensyarah">
           <p class="text-xs text-gray-500 italic">Kata laluan hanya untuk Admin.</p>
         </div>
         
-        <div class="flex items-center justify-between">
-          <button id="btnLogin" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline transition duration-200" type="submit">
-            Log Masuk
-          </button>
-        </div>
+        <button id="btnLogin" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full transition duration-200" type="submit">
+          Log Masuk
+        </button>
       </form>
       <div id="loginLoader" class="hidden justify-center mt-4">
         <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div>
@@ -86,13 +82,44 @@
     <!-- Content -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       
-      <!-- Butang & Carian -->
+      <!-- BAHAGIAN ANALISIS (KHAS ADMIN) -->
+      <div id="adminAnalysisSection" class="hidden mb-8 bg-white p-6 rounded shadow-lg border-l-4 border-indigo-500">
+          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-chart-bar mr-2 text-indigo-600"></i> Analisis Peperiksaan (Keseluruhan)
+          </h2>
+          
+          <!-- Statistik Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div class="bg-indigo-50 p-4 rounded text-center">
+                  <div class="text-sm text-gray-500 font-semibold">Min (Purata)</div>
+                  <div id="statMean" class="text-2xl font-bold text-indigo-700">-</div>
+              </div>
+              <div class="bg-purple-50 p-4 rounded text-center">
+                  <div class="text-sm text-gray-500 font-semibold">Sisihan Piawai</div>
+                  <div id="statStdDev" class="text-2xl font-bold text-purple-700">-</div>
+              </div>
+              <div class="bg-green-50 p-4 rounded text-center">
+                  <div class="text-sm text-gray-500 font-semibold">Markah Tertinggi</div>
+                  <div id="statMax" class="text-2xl font-bold text-green-700">-</div>
+              </div>
+              <div class="bg-red-50 p-4 rounded text-center">
+                  <div class="text-sm text-gray-500 font-semibold">Markah Terendah</div>
+                  <div id="statMin" class="text-2xl font-bold text-red-700">-</div>
+              </div>
+          </div>
+
+          <!-- Graf Chart -->
+          <div class="h-64 w-full">
+             <canvas id="marksChart"></canvas>
+          </div>
+      </div>
+
+      <!-- Controls & Table -->
       <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded shadow">
         <div class="flex space-x-2 mb-4 md:mb-0 w-full md:w-auto">
            <button onclick="refreshData()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
              <i class="fas fa-sync-alt mr-1"></i> Refresh
            </button>
-           <!-- Hanya Admin mungkin boleh tambah pelajar manual, tapi kita buka untuk semua dulu -->
            <button onclick="openModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
              <i class="fas fa-plus mr-1"></i> Tambah Pelajar
            </button>
@@ -111,14 +138,13 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pensyarah</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ujian</th>
-              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pembentangan</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pemb.</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Projek</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tindakan</th>
             </tr>
           </thead>
           <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
-            <!-- Data akan masuk sini -->
             <tr>
               <td colspan="8" class="px-6 py-4 text-center text-gray-500">Sedang memuatkan data...</td>
             </tr>
@@ -128,9 +154,9 @@
     </main>
   </div>
 
-  <!-- MODAL FORM (Tambah/Edit) -->
+  <!-- MODAL FORM -->
   <div id="modalForm" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-40">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
       <div class="flex justify-between items-center mb-4">
         <h3 id="modalTitle" class="text-lg font-bold text-gray-900">Maklumat Pelajar</h3>
         <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
@@ -139,10 +165,8 @@
       </div>
       
       <form id="studentForm" onsubmit="handleFormSubmit(event)">
-        <!-- Hidden Inputs -->
         <input type="hidden" id="action" value="save">
         
-        <!-- Info Asas -->
         <div class="grid grid-cols-2 gap-4 mb-4">
            <div>
              <label class="block text-sm font-medium text-gray-700">Nama Pelajar</label>
@@ -151,7 +175,6 @@
            <div>
              <label class="block text-sm font-medium text-gray-700">No. Kad Pengenalan</label>
              <input type="text" id="ic" class="mt-1 block w-full border rounded p-2 bg-gray-50" required>
-             <p class="text-xs text-red-500 mt-1">*IC adalah kunci unik</p>
            </div>
         </div>
 
@@ -163,18 +186,20 @@
             <div>
               <label class="block text-sm font-medium text-gray-700">Pensyarah</label>
               <input type="text" id="lecturer" class="mt-1 block w-full border rounded p-2 bg-gray-50" readonly>
-              <p class="text-xs text-gray-500 mt-1">Automatik berdasarkan login</p>
             </div>
          </div>
 
          <hr class="my-4 border-gray-200">
          <h4 class="text-sm font-bold text-gray-700 mb-2">Markah</h4>
 
-         <!-- Markah Inputs -->
+         <!-- INPUT MARKAH DENGAN VALIDASI -->
          <div class="grid grid-cols-3 gap-3 mb-2">
-           <div>
-             <label class="text-xs text-gray-600">Ujian</label>
-             <input type="number" id="ujian" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           <div class="relative">
+             <label class="text-xs text-gray-600 font-bold">Ujian (Max: 30)</label>
+             <input type="number" id="ujian" step="0.1" 
+                class="w-full border rounded p-1 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                oninput="validateInput(this, 30); calculateTotal()">
+             <p id="err-ujian" class="text-xs text-red-600 hidden font-bold mt-1">Lebih had (Max 30)!</p>
            </div>
            <div>
              <label class="text-xs text-gray-600">HP5</label>
@@ -212,225 +237,277 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
+  <!-- SCRIPT -->
   <script>
-    // --- KONFIGURASI PENTING ---
-    // GANTI URL INI DENGAN URL WEB APP ANDA SENDIRI
+    // --- KONFIGURASI ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwlBth3dWDYJQNNFsu05aPSH3RPLH_Gv2fGxpIf6_c3ZYab2-OE0UVEHkrxUWbr57n/exec"; 
 
-    // State Aplikasi
-    let currentUser = {
-        role: null, // 'admin' atau 'lecturer'
-        name: null
+    // Had Markah untuk Validasi
+    const LIMITS = {
+        ujian: 30,
+        // Lain-lain boleh set 100
     };
-    
-    let allData = []; // Simpan data pelajar secara lokal
 
-    // --- HELPER UNTUK FETCH ---
-    // Fungsi ini membantu kita handle ralat jika GAS return HTML error page
+    let currentUser = { role: null, name: null };
+    let allData = [];
+    let myChart = null; // Variable untuk simpan instance ChartJS
+
     async function fetchData(url, options = {}) {
         const response = await fetch(url, options);
         const text = await response.text();
+        try { return JSON.parse(text); } 
+        catch (e) { throw new Error("Server Error: " + text); }
+    }
+
+    // --- LOGIC VALIDASI INPUT ---
+    function validateInput(el, maxVal) {
+        let val = parseFloat(el.value);
+        const errId = "err-" + el.id;
+        const errEl = document.getElementById(errId);
         
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            // Jika gagal parse JSON, bermakna server return HTML error (Permission denied, dll)
-            console.error("Server Response Not JSON:", text);
-            throw new Error("Respon Server Gagal (Mungkin isu permission 'Anyone'). Sila semak console.");
+        if (val > maxVal) {
+            el.classList.add('border-red-500', 'bg-red-50');
+            el.classList.remove('border-gray-300');
+            if(errEl) errEl.classList.remove('hidden');
+            return false;
+        } else {
+            el.classList.remove('border-red-500', 'bg-red-50');
+            el.classList.add('border-gray-300');
+            if(errEl) errEl.classList.add('hidden');
+            return true;
         }
     }
 
-    // --- FUNGSI LOGIN ---
     function handleLogin(e) {
         e.preventDefault();
         const btn = document.getElementById('btnLogin');
         const loader = document.getElementById('loginLoader');
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        
+        btn.disabled = true; loader.classList.remove('hidden'); loader.classList.add('flex');
 
-        // UI Loading
-        btn.disabled = true;
-        btn.classList.add('opacity-50');
-        loader.classList.remove('hidden');
-        loader.classList.add('flex');
-
-        const payload = {
-            action: "login",
-            username: username,
-            password: password
-        };
-
-        // Guna fetch POST untuk hantar data login
-        // redirect: 'follow' penting untuk GAS Web App
         fetchData(SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                action: "login",
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            })
         })
         .then(res => {
             if (res.status === 'success') {
-                // Simpan info user
                 currentUser.role = res.role;
                 currentUser.name = res.name;
                 
-                showToast(res.message, 'success');
-                
-                // Tukar paparan ke dashboard
                 document.getElementById('loginPage').classList.add('hidden');
                 document.getElementById('mainPage').classList.remove('hidden');
-                
-                // Set nama di navbar
                 document.getElementById('userDisplay').textContent = `${res.name} (${res.role.toUpperCase()})`;
                 
-                // Muat turun data pelajar
+                // Tunjuk Analisis jika Admin
+                if (currentUser.role === 'admin') {
+                    document.getElementById('adminAnalysisSection').classList.remove('hidden');
+                }
+
                 loadData();
+                showToast("Berjaya Log Masuk", 'success');
             } else {
                 showToast(res.message, 'error');
             }
         })
-        .catch(err => {
-            showToast("Ralat: " + err.message, 'error');
-        })
+        .catch(err => showToast("Ralat: " + err.message, 'error'))
         .finally(() => {
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
-            loader.classList.add('hidden');
-            loader.classList.remove('flex');
+            btn.disabled = false; loader.classList.add('hidden');
         });
     }
 
-    // --- FUNGSI LOGOUT ---
-    function logout() {
-        if(confirm("Adakah anda pasti ingin log keluar?")) {
-            location.reload(); // Refresh page paling mudah untuk clear state
-        }
-    }
-
-    // --- FUNGSI MUAT TURUN DATA (READ) ---
     function loadData() {
         const tableBody = document.getElementById('studentTableBody');
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="inline-block loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 mr-2"></div>Memuatkan data...</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4">Memuatkan data...</td></tr>`;
 
-        // Bina URL query string
         let url = `${SCRIPT_URL}?action=read&role=${currentUser.role}`;
-        if (currentUser.role === 'lecturer') {
-            url += `&name=${encodeURIComponent(currentUser.name)}`;
-        }
+        if (currentUser.role === 'lecturer') url += `&name=${encodeURIComponent(currentUser.name)}`;
 
         fetchData(url)
         .then(res => {
             if (res.status === 'success') {
-                allData = res.data; // Simpan dalam variable global
+                allData = res.data;
                 renderTable(allData);
+                
+                // Jika Admin, kira analisis
+                if (currentUser.role === 'admin') {
+                    calculateAnalysis(allData);
+                }
             } else {
-                showToast("Gagal muat data: " + res.message, 'error');
-                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Gagal memuatkan data.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-red-500">${res.message}</td></tr>`;
             }
         })
-        .catch(err => {
-            console.error(err);
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Ralat: ${err.message}</td></tr>`;
+        .catch(err => console.error(err));
+    }
+
+    // --- FUNGSI ANALISIS ADMIN ---
+    function calculateAnalysis(data) {
+        if (!data || data.length === 0) return;
+
+        // Ambil semua markah 'total'
+        const marks = data.map(d => parseFloat(d.total) || 0);
+        
+        // 1. Kira Statistik Asas
+        const count = marks.length;
+        const sum = marks.reduce((a, b) => a + b, 0);
+        const mean = sum / count;
+        
+        // Min/Max
+        const max = Math.max(...marks);
+        const min = Math.min(...marks);
+
+        // Sisihan Piawai (Standard Deviation)
+        // Formula: sqrt( sum(x - mean)^2 / count )
+        const variance = marks.reduce((total, num) => total + Math.pow(num - mean, 2), 0) / count;
+        const stdDev = Math.sqrt(variance);
+
+        // Update UI Statistik
+        document.getElementById('statMean').textContent = mean.toFixed(2);
+        document.getElementById('statStdDev').textContent = stdDev.toFixed(2);
+        document.getElementById('statMax').textContent = max.toFixed(1);
+        document.getElementById('statMin').textContent = min.toFixed(1);
+
+        // 2. Bina Data untuk Carta (Histogram)
+        // Kita bahagikan markah kepada range 0-9, 10-19, ..., 90-100
+        let bins = new Array(10).fill(0); // 10 tong sampah
+        
+        marks.forEach(m => {
+            // Contoh markah 85 -> index 8. Markah 100 -> index 9 (sebab min(9, 10) = 9)
+            let index = Math.floor(m / 10);
+            if (index >= 10) index = 9; // Untuk markah 100 masuk bin terakhir
+            bins[index]++;
+        });
+
+        renderChart(bins);
+    }
+
+    function renderChart(binsData) {
+        const ctx = document.getElementById('marksChart').getContext('2d');
+        
+        // Hapus chart lama jika ada (untuk refresh)
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-100'],
+                datasets: [{
+                    label: 'Bilangan Pelajar',
+                    data: binsData,
+                    backgroundColor: 'rgba(79, 70, 229, 0.6)', // Warna Indigo
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Taburan Markah Pelajar' }
+                }
+            }
         });
     }
 
-    function refreshData() {
-        loadData();
-    }
-
-    // --- FUNGSI PAPARAN JADUAL ---
     function renderTable(data) {
         const tableBody = document.getElementById('studentTableBody');
         tableBody.innerHTML = '';
-
         if (data.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Tiada rekod dijumpai.</td></tr>`;
-            return;
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Tiada rekod.</td></tr>`; return;
         }
 
-        data.forEach(student => {
-            // Pengiraan mudah untuk paparan
-            const jumPemb = (parseFloat(student.hp5) || 0) + (parseFloat(student.hp6) || 0);
-            const jumProj = (parseFloat(student.hp8) || 0) + (parseFloat(student.hp11) || 0);
+        data.forEach(s => {
+            // Pengiraan pantas
+            const jumPemb = (parseFloat(s.hp5)||0) + (parseFloat(s.hp6)||0);
+            const jumProj = (parseFloat(s.hp8)||0) + (parseFloat(s.hp11)||0);
 
             const row = `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${student.name}</div>
-                        <div class="text-sm text-gray-500">${student.ic}</div>
+                <tr class="hover:bg-gray-50 text-sm">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-gray-900">${s.name}</div>
+                        <div class="text-gray-500 text-xs">${s.ic}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.class}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.lecturer}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${student.ujian}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${jumPemb.toFixed(1)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${jumProj.toFixed(1)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-blue-600">${student.total}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button onclick='editStudent(${JSON.stringify(student)})' class="text-indigo-600 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 py-1 px-3 rounded transition">
-                            <i class="fas fa-edit"></i> Edit
+                    <td class="px-6 py-4 text-gray-500">${s.class}</td>
+                    <td class="px-6 py-4 text-gray-500">${s.lecturer}</td>
+                    <td class="px-6 py-4 text-center font-semibold text-gray-700">${s.ujian}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">${jumPemb.toFixed(1)}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">${jumProj.toFixed(1)}</td>
+                    <td class="px-6 py-4 text-center font-bold text-blue-600 text-base">${s.total}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick='editStudent(${JSON.stringify(s)})' class="text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded border border-indigo-200">
+                            Edit
                         </button>
                     </td>
-                </tr>
-            `;
+                </tr>`;
             tableBody.insertAdjacentHTML('beforeend', row);
         });
     }
 
-    // --- FUNGSI FILTER/CARIAN ---
     function filterTable() {
         const input = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allData.filter(student => {
-            return (student.name && student.name.toLowerCase().includes(input)) || 
-                   (student.ic && String(student.ic).includes(input));
-        });
+        const filtered = allData.filter(s => 
+            (s.name && s.name.toLowerCase().includes(input)) || 
+            (s.ic && String(s.ic).includes(input))
+        );
         renderTable(filtered);
     }
 
-    // --- FUNGSI MODAL & BORANG ---
+    // --- BORANG ACTIONS ---
     function openModal() {
         document.getElementById('studentForm').reset();
         document.getElementById('modalTitle').textContent = "Tambah Pelajar Baru";
         document.getElementById('modalForm').classList.remove('hidden');
         
-        // Auto fill lecturer jika dia pensyarah
+        // Reset Error UI
+        document.getElementById('ujian').classList.remove('border-red-500', 'bg-red-50');
+        document.getElementById('err-ujian').classList.add('hidden');
+
         if (currentUser.role === 'lecturer') {
             document.getElementById('lecturer').value = currentUser.name;
         } else {
-            document.getElementById('lecturer').value = ""; // Admin kena isi manual atau buat dropdown lain kali
-            document.getElementById('lecturer').readOnly = false; // Admin boleh edit
+            document.getElementById('lecturer').value = "";
+            document.getElementById('lecturer').readOnly = false;
         }
     }
 
-    function closeModal() {
-        document.getElementById('modalForm').classList.add('hidden');
-    }
+    function closeModal() { document.getElementById('modalForm').classList.add('hidden'); }
 
-    function editStudent(student) {
+    function editStudent(s) {
         openModal();
-        document.getElementById('modalTitle').textContent = "Kemaskini Markah: " + student.name;
+        document.getElementById('modalTitle').textContent = "Edit: " + s.name;
         
-        // Isi borang
-        document.getElementById('name').value = student.name;
-        document.getElementById('ic').value = student.ic;
-        document.getElementById('studentClass').value = student.class;
-        document.getElementById('lecturer').value = student.lecturer;
-        
-        document.getElementById('ujian').value = student.ujian;
-        document.getElementById('hp5').value = student.hp5;
-        document.getElementById('hp6').value = student.hp6;
-        document.getElementById('hp8').value = student.hp8;
-        document.getElementById('hp11').value = student.hp11;
-        
-        // Kunci nama dan IC semasa edit markah untuk elak duplikasi tidak sengaja
-        // Boleh dibuang jika nak benarkan edit nama
+        document.getElementById('name').value = s.name;
         document.getElementById('name').readOnly = true; 
         document.getElementById('name').classList.add('bg-gray-100');
+        
+        document.getElementById('ic').value = s.ic;
         document.getElementById('ic').readOnly = true;
         document.getElementById('ic').classList.add('bg-gray-100');
+
+        document.getElementById('studentClass').value = s.class;
+        document.getElementById('lecturer').value = s.lecturer;
+        
+        document.getElementById('ujian').value = s.ujian;
+        document.getElementById('hp5').value = s.hp5;
+        document.getElementById('hp6').value = s.hp6;
+        document.getElementById('hp8').value = s.hp8;
+        document.getElementById('hp11').value = s.hp11;
         
         calculateTotal();
     }
 
-    // Kira live total dalam modal
     function calculateTotal() {
         const u = parseFloat(document.getElementById('ujian').value) || 0;
         const h5 = parseFloat(document.getElementById('hp5').value) || 0;
@@ -445,13 +522,21 @@
     function handleFormSubmit(e) {
         e.preventDefault();
         
+        // --- VALIDASI TERAKHIR SEBELUM HANTAR ---
+        const ujianInput = document.getElementById('ujian');
+        const ujianVal = parseFloat(ujianInput.value) || 0;
+
+        if (ujianVal > LIMITS.ujian) {
+            alert(`Ralat: Markah Ujian tidak boleh melebihi ${LIMITS.ujian}! Sila betulkan.`);
+            ujianInput.focus();
+            return; // STOP DI SINI
+        }
+
         const btn = document.getElementById('btnSave');
         const loader = document.getElementById('saveLoader');
         
-        btn.disabled = true;
-        loader.classList.remove('hidden');
+        btn.disabled = true; loader.classList.remove('hidden');
 
-        // Kutip data
         const formData = {
             action: "save",
             name: document.getElementById('name').value,
@@ -463,47 +548,32 @@
             hp6: document.getElementById('hp6').value,
             hp8: document.getElementById('hp8').value,
             hp11: document.getElementById('hp11').value
-            // Total dikira semula di backend untuk keselamatan
         };
 
-        // Hantar
-        fetchData(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(formData)
-        })
+        fetchData(SCRIPT_URL, { method: 'POST', body: JSON.stringify(formData) })
         .then(res => {
             if (res.status === 'success') {
-                showToast("Data berjaya disimpan!", 'success');
+                showToast("Disimpan!", 'success');
                 closeModal();
-                loadData(); // Refresh table
+                loadData();
             } else {
                 showToast("Ralat: " + res.message, 'error');
             }
         })
-        .catch(err => {
-            showToast("Ralat sambungan: " + err.message, 'error');
-        })
+        .catch(err => showToast("Error: " + err.message, 'error'))
         .finally(() => {
-            btn.disabled = false;
-            loader.classList.add('hidden');
+            btn.disabled = false; loader.classList.add('hidden');
         });
     }
 
-    // --- UTILITIES ---
+    function logout() { if(confirm("Log keluar?")) location.reload(); }
+    
     function showToast(msg, type) {
         const toast = document.getElementById('toast');
         toast.textContent = msg;
-        toast.classList.remove('hidden');
-        
-        if (type === 'success') {
-            toast.className = "fixed top-5 right-5 z-50 p-4 rounded shadow-lg text-white bg-green-500";
-        } else {
-            toast.className = "fixed top-5 right-5 z-50 p-4 rounded shadow-lg text-white bg-red-500";
-        }
-        
-        setTimeout(() => {
-            toast.classList.add('hidden');
-        }, 3000);
+        toast.classList.remove('hidden', 'bg-green-500', 'bg-red-500');
+        toast.classList.add(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
     }
   </script>
 </body>
