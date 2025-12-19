@@ -226,6 +226,21 @@
     
     let allData = []; // Simpan data pelajar secara lokal
 
+    // --- HELPER UNTUK FETCH ---
+    // Fungsi ini membantu kita handle ralat jika GAS return HTML error page
+    async function fetchData(url, options = {}) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+        
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            // Jika gagal parse JSON, bermakna server return HTML error (Permission denied, dll)
+            console.error("Server Response Not JSON:", text);
+            throw new Error("Respon Server Gagal (Mungkin isu permission 'Anyone'). Sila semak console.");
+        }
+    }
+
     // --- FUNGSI LOGIN ---
     function handleLogin(e) {
         e.preventDefault();
@@ -247,11 +262,11 @@
         };
 
         // Guna fetch POST untuk hantar data login
-        fetch(SCRIPT_URL, {
+        // redirect: 'follow' penting untuk GAS Web App
+        fetchData(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
         .then(res => {
             if (res.status === 'success') {
                 // Simpan info user
@@ -274,7 +289,7 @@
             }
         })
         .catch(err => {
-            showToast("Ralat sambungan: " + err, 'error');
+            showToast("Ralat: " + err.message, 'error');
         })
         .finally(() => {
             btn.disabled = false;
@@ -302,8 +317,7 @@
             url += `&name=${encodeURIComponent(currentUser.name)}`;
         }
 
-        fetch(url)
-        .then(response => response.json())
+        fetchData(url)
         .then(res => {
             if (res.status === 'success') {
                 allData = res.data; // Simpan dalam variable global
@@ -315,7 +329,7 @@
         })
         .catch(err => {
             console.error(err);
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Ralat: ${err}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Ralat: ${err.message}</td></tr>`;
         });
     }
 
@@ -453,11 +467,10 @@
         };
 
         // Hantar
-        fetch(SCRIPT_URL, {
+        fetchData(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(formData)
         })
-        .then(response => response.json())
         .then(res => {
             if (res.status === 'success') {
                 showToast("Data berjaya disimpan!", 'success');
@@ -468,7 +481,7 @@
             }
         })
         .catch(err => {
-            showToast("Ralat sambungan: " + err, 'error');
+            showToast("Ralat sambungan: " + err.message, 'error');
         })
         .finally(() => {
             btn.disabled = false;
