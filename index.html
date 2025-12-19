@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Pengurusan Markah</title>
+  <title>Sistem Pengurusan Markah PENGURUSAN KOKURIKULUM 2026</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome -->
@@ -32,7 +32,7 @@
   <div id="loginPage" class="flex items-center justify-center min-h-screen">
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
       <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-gray-800">Sistem Markah Pelajar</h1>
+        <h1 class="text-2xl font-bold text-gray-800">Sistem Markah Pelajar PENGURUSAN KOKURIKULUM PDPP 2026</h1>
         <p class="text-gray-500 text-sm">Sila log masuk untuk meneruskan</p>
       </div>
 
@@ -84,9 +84,20 @@
       
       <!-- BAHAGIAN ANALISIS (KHAS ADMIN) -->
       <div id="adminAnalysisSection" class="hidden mb-8 bg-white p-6 rounded shadow-lg border-l-4 border-indigo-500">
-          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-chart-bar mr-2 text-indigo-600"></i> Analisis Peperiksaan (Keseluruhan)
-          </h2>
+          <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800 flex items-center mb-2 md:mb-0">
+                <i class="fas fa-chart-bar mr-2 text-indigo-600"></i> Analisis Peperiksaan
+            </h2>
+            
+            <!-- Filter Kelas dalam Analisis -->
+            <div class="flex items-center">
+                <label class="mr-2 text-sm font-semibold text-gray-600">Analisis Ikut Kelas:</label>
+                <select id="analysisClassFilter" onchange="handleClassFilterChange()" class="border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                    <option value="all">Semua Kelas</option>
+                    <!-- Options akan ditambah oleh JS -->
+                </select>
+            </div>
+          </div>
           
           <!-- Statistik Cards -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -141,12 +152,14 @@
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pemb.</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Projek</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+              <!-- Tambah Lajur Gred -->
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gred</th>
               <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tindakan</th>
             </tr>
           </thead>
           <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
             <tr>
-              <td colspan="8" class="px-6 py-4 text-center text-gray-500">Sedang memuatkan data...</td>
+              <td colspan="9" class="px-6 py-4 text-center text-gray-500">Sedang memuatkan data...</td>
             </tr>
           </tbody>
         </table>
@@ -280,6 +293,22 @@
         catch (e) { throw new Error("Server Error: " + text); }
     }
 
+    // --- LOGIC GRED ---
+    function getGrade(mark) {
+        if (mark >= 90) return "A+";
+        if (mark >= 80) return "A";
+        if (mark >= 75) return "A-";
+        if (mark >= 70) return "B+";
+        if (mark >= 65) return "B";
+        if (mark >= 60) return "B-";
+        if (mark >= 55) return "C+";
+        if (mark >= 50) return "C";
+        if (mark >= 40) return "C-";
+        if (mark >= 30) return "D+";
+        if (mark >= 20) return "D";
+        return "F";
+    }
+
     // --- LOGIC VALIDASI INPUT ---
     function validateInput(el, maxVal) {
         let val = parseFloat(el.value);
@@ -342,7 +371,7 @@
 
     function loadData() {
         const tableBody = document.getElementById('studentTableBody');
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4">Memuatkan data...</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4">Memuatkan data...</td></tr>`;
 
         let url = `${SCRIPT_URL}?action=read&role=${currentUser.role}`;
         if (currentUser.role === 'lecturer') url += `&name=${encodeURIComponent(currentUser.name)}`;
@@ -351,22 +380,64 @@
         .then(res => {
             if (res.status === 'success') {
                 allData = res.data;
-                renderTable(allData);
                 
-                // Jika Admin, kira analisis
                 if (currentUser.role === 'admin') {
-                    calculateAnalysis(allData);
+                    // Populate Kelas Dropdown
+                    populateClassDropdown(allData);
+                    // Mula dengan 'all'
+                    handleClassFilterChange(); 
+                } else {
+                    renderTable(allData);
                 }
+
             } else {
-                tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-red-500">${res.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="9" class="text-center text-red-500">${res.message}</td></tr>`;
             }
         })
         .catch(err => console.error(err));
     }
 
-    // --- FUNGSI ANALISIS ADMIN ---
+    // --- FUNGSI ANALISIS & FILTER KELAS ---
+    
+    function populateClassDropdown(data) {
+        const select = document.getElementById('analysisClassFilter');
+        // Reset (kekalkan option 'all')
+        select.innerHTML = '<option value="all">Semua Kelas</option>';
+        
+        // Dapatkan senarai kelas unik
+        const classes = [...new Set(data.map(item => item.class).filter(c => c))].sort();
+        
+        classes.forEach(cls => {
+            const option = document.createElement('option');
+            option.value = cls;
+            option.textContent = cls;
+            select.appendChild(option);
+        });
+    }
+
+    function handleClassFilterChange() {
+        const selectedClass = document.getElementById('analysisClassFilter').value;
+        let filteredData = allData;
+
+        if (selectedClass !== 'all') {
+            filteredData = allData.filter(student => student.class === selectedClass);
+        }
+
+        // Kemaskini Analisis & Table berdasarkan filter
+        calculateAnalysis(filteredData);
+        renderTable(filteredData);
+    }
+
     function calculateAnalysis(data) {
-        if (!data || data.length === 0) return;
+        if (!data || data.length === 0) {
+            // Reset stats jika tiada data
+            document.getElementById('statMean').textContent = "-";
+            document.getElementById('statStdDev').textContent = "-";
+            document.getElementById('statMax').textContent = "-";
+            document.getElementById('statMin').textContent = "-";
+            if(myChart) myChart.destroy();
+            return;
+        }
 
         // Ambil semua markah 'total'
         const marks = data.map(d => parseFloat(d.total) || 0);
@@ -381,7 +452,6 @@
         const min = Math.min(...marks);
 
         // Sisihan Piawai (Standard Deviation)
-        // Formula: sqrt( sum(x - mean)^2 / count )
         const variance = marks.reduce((total, num) => total + Math.pow(num - mean, 2), 0) / count;
         const stdDev = Math.sqrt(variance);
 
@@ -392,13 +462,11 @@
         document.getElementById('statMin').textContent = min.toFixed(1);
 
         // 2. Bina Data untuk Carta (Histogram)
-        // Kita bahagikan markah kepada range 0-9, 10-19, ..., 90-100
-        let bins = new Array(10).fill(0); // 10 tong sampah
+        let bins = new Array(10).fill(0); // 0-9, 10-19 ... 90-100
         
         marks.forEach(m => {
-            // Contoh markah 85 -> index 8. Markah 100 -> index 9 (sebab min(9, 10) = 9)
             let index = Math.floor(m / 10);
-            if (index >= 10) index = 9; // Untuk markah 100 masuk bin terakhir
+            if (index >= 10) index = 9; 
             bins[index]++;
         });
 
@@ -408,7 +476,6 @@
     function renderChart(binsData) {
         const ctx = document.getElementById('marksChart').getContext('2d');
         
-        // Hapus chart lama jika ada (untuk refresh)
         if (myChart) {
             myChart.destroy();
         }
@@ -420,7 +487,7 @@
                 datasets: [{
                     label: 'Bilangan Pelajar',
                     data: binsData,
-                    backgroundColor: 'rgba(79, 70, 229, 0.6)', // Warna Indigo
+                    backgroundColor: 'rgba(79, 70, 229, 0.6)', 
                     borderColor: 'rgba(79, 70, 229, 1)',
                     borderWidth: 1
                 }]
@@ -446,13 +513,21 @@
         const tableBody = document.getElementById('studentTableBody');
         tableBody.innerHTML = '';
         if (data.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Tiada rekod.</td></tr>`; return;
+            tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-gray-500">Tiada rekod.</td></tr>`; return;
         }
 
         data.forEach(s => {
             // Pengiraan pantas
             const jumPemb = (parseFloat(s.hp5)||0) + (parseFloat(s.hp6)||0);
             const jumProj = (parseFloat(s.hp8)||0) + (parseFloat(s.hp11)||0);
+            const total = parseFloat(s.total) || 0;
+            const gred = getGrade(total);
+
+            // Highlight A+
+            let gredDisplay = gred;
+            if (gred === 'A+') {
+                gredDisplay = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded font-bold">${gred}</span>`;
+            }
 
             const row = `
                 <tr class="hover:bg-gray-50 text-sm">
@@ -466,6 +541,7 @@
                     <td class="px-6 py-4 text-center text-gray-600">${jumPemb.toFixed(1)}</td>
                     <td class="px-6 py-4 text-center text-gray-600">${jumProj.toFixed(1)}</td>
                     <td class="px-6 py-4 text-center font-bold text-blue-600 text-base">${s.total}</td>
+                    <td class="px-6 py-4 text-center font-semibold">${gredDisplay}</td>
                     <td class="px-6 py-4 text-center">
                         <button onclick='editStudent(${JSON.stringify(s)})' class="text-indigo-600 hover:bg-indigo-50 px-3 py-1 rounded border border-indigo-200">
                             Edit
@@ -478,10 +554,15 @@
 
     function filterTable() {
         const input = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allData.filter(s => 
-            (s.name && s.name.toLowerCase().includes(input)) || 
-            (s.ic && String(s.ic).includes(input))
-        );
+        // Ambil juga filter kelas semasa (jika admin)
+        const selectedClass = document.getElementById('analysisClassFilter') ? document.getElementById('analysisClassFilter').value : 'all';
+        
+        const filtered = allData.filter(s => {
+            const matchesSearch = (s.name && s.name.toLowerCase().includes(input)) || (s.ic && String(s.ic).includes(input));
+            const matchesClass = (selectedClass === 'all') || (s.class === selectedClass);
+            return matchesSearch && matchesClass;
+        });
+        
         renderTable(filtered);
     }
 
