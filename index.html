@@ -1,819 +1,497 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pemarkahan Pensyarah - IPG Style</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Custom Print Styles */
-        @media print {
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            body { background: white; }
-            .card { box-shadow: none; border: 1px solid #ccc; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Pengurusan Markah</title>
+  <!-- Menggunakan Tailwind CSS untuk penggayaan pantas -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Menggunakan Font Awesome untuk ikon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Custom loader */
+    .loader {
+      border-top-color: #3498db;
+      -webkit-animation: spinner 1.5s linear infinite;
+      animation: spinner 1.5s linear infinite;
+    }
+    @keyframes spinner {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans">
+<body class="bg-gray-100 min-h-screen font-sans">
 
+  <!-- NOTIFIKASI (Toast) -->
+  <div id="toast" class="fixed top-5 right-5 z-50 hidden p-4 rounded shadow-lg text-white transition-opacity duration-300"></div>
+
+  <!-- HALAMAN LOGIN -->
+  <div id="loginPage" class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-800">Sistem Markah Pelajar</h1>
+        <p class="text-gray-500 text-sm">Sila log masuk untuk meneruskan</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+            ID Pengguna / No. Kad Pengenalan
+          </label>
+          <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+            id="username" type="text" placeholder="Contoh: admin atau 800101..." required>
+        </div>
+        
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+            Kata Laluan
+          </label>
+          <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" 
+            id="password" type="password" placeholder="Kosongkan jika pensyarah">
+          <p class="text-xs text-gray-500 italic">Kata laluan hanya untuk Admin.</p>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <button id="btnLogin" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:shadow-outline transition duration-200" type="submit">
+            Log Masuk
+          </button>
+        </div>
+      </form>
+      <div id="loginLoader" class="hidden justify-center mt-4">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HALAMAN UTAMA (DASHBOARD) -->
+  <div id="mainPage" class="hidden">
     <!-- Navbar -->
-    <nav class="bg-blue-900 text-white shadow-lg sticky top-0 z-50 no-print">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fas fa-graduation-cap text-2xl text-yellow-400"></i>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Sistem Pemarkahan Pensyarah</h1>
-                    <p class="text-xs text-blue-200">Pentaksiran IPG 2024</p>
-                </div>
-            </div>
-            <div class="hidden md:flex space-x-6 text-sm font-semibold">
-                <button onclick="switchTab('input')" class="hover:text-yellow-400 transition tab-btn" id="btn-input">
-                    <i class="fas fa-edit mr-1"></i> Input Markah
-                </button>
-                <button onclick="switchTab('data')" class="hover:text-yellow-400 transition tab-btn" id="btn-data">
-                    <i class="fas fa-table mr-1"></i> Senarai Induk
-                </button>
-                <button onclick="switchTab('analysis')" class="hover:text-yellow-400 transition tab-btn" id="btn-analysis">
-                    <i class="fas fa-chart-bar mr-1"></i> Analisis Statistik
-                </button>
-                <button onclick="openConfigModal()" class="hover:text-yellow-400 transition">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-            <!-- Mobile Menu Button -->
-            <button class="md:hidden text-white" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
-                <i class="fas fa-bars"></i>
+    <nav class="bg-blue-800 text-white shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <span class="font-bold text-xl"><i class="fas fa-graduation-cap mr-2"></i>Sistem Markah</span>
+          </div>
+          <div class="flex items-center">
+            <span id="userDisplay" class="mr-4 text-sm bg-blue-700 py-1 px-3 rounded"></span>
+            <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded transition">
+              <i class="fas fa-sign-out-alt mr-1"></i> Keluar
             </button>
+          </div>
         </div>
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-blue-800 p-4">
-            <button onclick="switchTab('input')" class="block w-full text-left py-2 hover:bg-blue-700">Input</button>
-            <button onclick="switchTab('data')" class="block w-full text-left py-2 hover:bg-blue-700">Senarai</button>
-            <button onclick="switchTab('analysis')" class="block w-full text-left py-2 hover:bg-blue-700">Analisis</button>
-        </div>
+      </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-6 mb-20">
-        
-        <!-- Status Bar -->
-        <div id="system-status" class="mb-4 text-sm flex items-center justify-between bg-white p-2 rounded shadow-sm border-l-4 border-yellow-500 no-print">
-            <span class="text-gray-600"><i class="fas fa-info-circle mr-2"></i>Mod: <span id="mode-indicator" class="font-bold text-yellow-600">Simulasi (LocalStorage)</span></span>
-            <span id="lock-status" class="text-green-600 font-bold"><i class="fas fa-unlock mr-1"></i> Sistem Dibuka</span>
+    <!-- Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      
+      <!-- Butang & Carian -->
+      <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded shadow">
+        <div class="flex space-x-2 mb-4 md:mb-0 w-full md:w-auto">
+           <button onclick="refreshData()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
+             <i class="fas fa-sync-alt mr-1"></i> Refresh
+           </button>
+           <!-- Hanya Admin mungkin boleh tambah pelajar manual, tapi kita buka untuk semua dulu -->
+           <button onclick="openModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+             <i class="fas fa-plus mr-1"></i> Tambah Pelajar
+           </button>
         </div>
+        <div class="w-full md:w-1/3">
+          <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari nama atau IC..." class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+      </div>
 
-        <!-- VIEW: INPUT FORM -->
-        <section id="view-input" class="view-section animate-fade-in">
-            <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-600">
-                <h2 class="text-xl font-bold mb-4 text-blue-900 border-b pb-2">Borang Input Markah</h2>
-                
-                <form id="gradingForm" onsubmit="handleFormSubmit(event)">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <!-- Student Info -->
-                        <div class="space-y-4">
-                            <h3 class="font-bold text-gray-500 text-sm uppercase">Maklumat Pelajar</h3>
-                            
-                            <!-- Class Selection First for Filtering -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Kelas Dahulu</label>
-                                <select id="inputClass" onchange="updateStudentOptions()" class="block w-full rounded-md border border-gray-300 p-2 bg-blue-50 focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="">-- Sila Pilih Kelas --</option>
-                                    <!-- Options populated dynamically -->
-                                </select>
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Nama Pelajar</label>
-                                    <div class="relative">
-                                        <input type="text" id="inputName" list="studentDataList" onchange="autoFillStudentDetails()" placeholder="Pilih atau taip nama..." required 
-                                            class="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500">
-                                        <datalist id="studentDataList">
-                                            <!-- Populated by JS -->
-                                        </datalist>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i class="fas fa-search text-gray-400"></i>
-                                        </div>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Pilih kelas di atas untuk menapis senarai nama.</p>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded border">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500">No. KP</label>
-                                    <input type="text" id="inputIC" readonly class="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-gray-100 text-gray-600 cursor-not-allowed">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500">Angka Giliran</label>
-                                    <input type="text" id="inputIndex" readonly class="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-gray-100 text-gray-600 cursor-not-allowed">
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-xs font-medium text-gray-500">Pensyarah</label>
-                                    <input type="text" id="inputLecturer" readonly class="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-gray-100 text-gray-600">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Marks Input -->
-                        <div class="space-y-4 bg-gray-50 p-4 rounded-md border border-gray-200">
-                            <h3 class="font-bold text-gray-500 text-sm uppercase">Komponen Markah (Boleh dibiarkan kosong)</h3>
-                            
-                            <!-- Ujian (30%) -->
-                            <div>
-                                <label class="flex justify-between text-sm font-medium text-gray-700">
-                                    <span>Ujian Bertulis</span>
-                                    <span class="text-blue-600 font-bold">30%</span>
-                                </label>
-                                <input type="number" id="markUjian" min="0" max="30" step="0.1" 
-                                    class="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 bg-white"
-                                    oninput="calculateRealtime()">
-                                <p class="text-xs text-gray-500 text-right">Maks: 30</p>
-                            </div>
-
-                            <!-- Pembentangan -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600">Pembentangan HP5 (30%)</label>
-                                    <input type="number" id="markHP5" min="0" max="30" step="0.1" class="mt-1 block w-full rounded-md border border-gray-300 p-2" oninput="calculateRealtime()">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600">Pembentangan HP6 (10%)</label>
-                                    <input type="number" id="markHP6" min="0" max="10" step="0.1" class="mt-1 block w-full rounded-md border border-gray-300 p-2" oninput="calculateRealtime()">
-                                </div>
-                            </div>
-
-                            <!-- Projek -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600">Projek HP8 (20%)</label>
-                                    <input type="number" id="markHP8" min="0" max="20" step="0.1" class="mt-1 block w-full rounded-md border border-gray-300 p-2" oninput="calculateRealtime()">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600">Projek HP11 (10%)</label>
-                                    <input type="number" id="markHP11" min="0" max="10" step="0.1" class="mt-1 block w-full rounded-md border border-gray-300 p-2" oninput="calculateRealtime()">
-                                </div>
-                            </div>
-
-                            <!-- Live Preview -->
-                            <div class="mt-4 p-3 bg-blue-100 rounded text-center">
-                                <span class="text-sm text-blue-800 block">Anggaran Gred</span>
-                                <div class="flex justify-center items-end space-x-2">
-                                    <span id="previewTotal" class="text-3xl font-bold text-blue-900">0.0</span>
-                                    <span class="text-lg font-semibold text-blue-700">/ 100</span>
-                                    <span id="previewGrade" class="ml-2 px-3 py-1 bg-blue-600 text-white rounded font-bold shadow-sm">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="resetForm()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Reset</button>
-                        <button type="submit" id="btnSave" class="px-6 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 transition shadow-lg flex items-center">
-                            <i class="fas fa-save mr-2"></i> Simpan Markah
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <!-- VIEW: DATA TABLE -->
-        <section id="view-data" class="view-section hidden animate-fade-in">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <h2 class="text-xl font-bold text-blue-900">Senarai Induk Pelajar</h2>
-                    <div class="flex flex-wrap gap-2">
-                        <select id="filterClass" onchange="renderTable()" class="border p-2 rounded text-sm min-w-[150px]">
-                            <option value="all">Semua Kelas</option>
-                            <!-- Dynamic Options -->
-                        </select>
-                        <button onclick="exportCSV()" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700">
-                            <i class="fas fa-file-csv mr-1"></i> CSV
-                        </button>
-                        <button onclick="window.print()" class="bg-gray-700 text-white px-3 py-2 rounded text-sm hover:bg-gray-800">
-                            <i class="fas fa-print mr-1"></i> Cetak
-                        </button>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left border-collapse">
-                        <thead class="bg-gray-100 text-gray-700 uppercase font-semibold">
-                            <tr>
-                                <th class="p-3 border">Bil</th>
-                                <th class="p-3 border">Nama</th>
-                                <th class="p-3 border">No. KP</th>
-                                <th class="p-3 border">Kelas</th>
-                                <th class="p-3 border text-center bg-blue-50">Ujian (30%)</th>
-                                <th class="p-3 border text-center bg-green-50">Pemb (40%)</th>
-                                <th class="p-3 border text-center bg-yellow-50">Projek (30%)</th>
-                                <th class="p-3 border text-center font-bold bg-gray-200">Jumlah</th>
-                                <th class="p-3 border text-center font-bold bg-gray-200">Gred</th>
-                                <th class="p-3 border text-center no-print">Tindakan</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dataTableBody" class="text-gray-600">
-                            <!-- Rows will be injected by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- VIEW: ANALYSIS -->
-        <section id="view-analysis" class="view-section hidden animate-fade-in">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <!-- Stat Cards -->
-                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-                    <h3 class="text-gray-500 text-sm uppercase font-bold">Min Markah</h3>
-                    <p id="statMean" class="text-3xl font-bold text-blue-900 mt-2">0.00</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
-                    <h3 class="text-gray-500 text-sm uppercase font-bold">Sisihan Piawai</h3>
-                    <p id="statStdDev" class="text-3xl font-bold text-purple-900 mt-2">0.00</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-                    <h3 class="text-gray-500 text-sm uppercase font-bold">Bil. Pelajar</h3>
-                    <p id="statCount" class="text-3xl font-bold text-green-900 mt-2">0</p>
-                </div>
-            </div>
-
-            <!-- Canvas Chart -->
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 class="font-bold text-lg mb-4 text-center">Taburan Gred Pelajar (Histogram)</h3>
-                <div class="relative w-full overflow-x-auto flex justify-center">
-                    <canvas id="gradeChart" width="800" height="400" class="bg-white border rounded"></canvas>
-                </div>
-            </div>
-
-             <!-- Logs -->
-             <div class="bg-gray-100 p-4 rounded text-xs text-gray-500">
-                <p><strong>Log Sistem:</strong></p>
-                <div id="systemLog" class="h-20 overflow-y-auto mt-2 font-mono bg-white p-2 border">
-                    Menunggu input...
-                </div>
-            </div>
-        </section>
-
+      <!-- Jadual -->
+      <div class="bg-white shadow overflow-hidden sm:rounded-lg overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / IC</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pensyarah</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ujian</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pembentangan</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Projek</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
+            <!-- Data akan masuk sini -->
+            <tr>
+              <td colspan="8" class="px-6 py-4 text-center text-gray-500">Sedang memuatkan data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </main>
+  </div>
 
-    <!-- Config Modal -->
-    <div id="configModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded shadow-lg w-96">
-            <h3 class="font-bold text-lg mb-4">Tetapan Sistem</h3>
-            <label class="block text-sm mb-2">Google Apps Script URL (Web App) / CSV Link</label>
-            <input type="text" id="gasUrlInput" placeholder="https://..." class="w-full border p-2 rounded mb-4 text-xs">
-            <p class="text-xs text-gray-500 mb-4">
-                Masukkan "Web App URL" untuk fungsi simpan.<br>
-                Masukkan "Published CSV Link" untuk mod baca sahaja.
-            </p>
-            <div class="flex justify-end space-x-2">
-                <button onclick="document.getElementById('configModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded">Tutup</button>
-                <button onclick="saveConfig()" class="px-4 py-2 bg-blue-600 text-white rounded">Simpan</button>
-            </div>
+  <!-- MODAL FORM (Tambah/Edit) -->
+  <div id="modalForm" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-40">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="modalTitle" class="text-lg font-bold text-gray-900">Maklumat Pelajar</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <form id="studentForm" onsubmit="handleFormSubmit(event)">
+        <!-- Hidden Inputs -->
+        <input type="hidden" id="action" value="save">
+        
+        <!-- Info Asas -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+           <div>
+             <label class="block text-sm font-medium text-gray-700">Nama Pelajar</label>
+             <input type="text" id="name" class="mt-1 block w-full border rounded p-2 bg-gray-50" required>
+           </div>
+           <div>
+             <label class="block text-sm font-medium text-gray-700">No. Kad Pengenalan</label>
+             <input type="text" id="ic" class="mt-1 block w-full border rounded p-2 bg-gray-50" required>
+             <p class="text-xs text-red-500 mt-1">*IC adalah kunci unik</p>
+           </div>
         </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Kelas</label>
+              <input type="text" id="studentClass" class="mt-1 block w-full border rounded p-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Pensyarah</label>
+              <input type="text" id="lecturer" class="mt-1 block w-full border rounded p-2 bg-gray-50" readonly>
+              <p class="text-xs text-gray-500 mt-1">Automatik berdasarkan login</p>
+            </div>
+         </div>
+
+         <hr class="my-4 border-gray-200">
+         <h4 class="text-sm font-bold text-gray-700 mb-2">Markah</h4>
+
+         <!-- Markah Inputs -->
+         <div class="grid grid-cols-3 gap-3 mb-2">
+           <div>
+             <label class="text-xs text-gray-600">Ujian</label>
+             <input type="number" id="ujian" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           </div>
+           <div>
+             <label class="text-xs text-gray-600">HP5</label>
+             <input type="number" id="hp5" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           </div>
+           <div>
+             <label class="text-xs text-gray-600">HP6</label>
+             <input type="number" id="hp6" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+           </div>
+         </div>
+         
+         <div class="grid grid-cols-3 gap-3 mb-4">
+            <div>
+              <label class="text-xs text-gray-600">HP8</label>
+              <input type="number" id="hp8" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+            </div>
+            <div>
+              <label class="text-xs text-gray-600">HP11</label>
+              <input type="number" id="hp11" step="0.1" class="w-full border rounded p-1" oninput="calculateTotal()">
+            </div>
+            <div class="bg-gray-100 p-2 rounded text-center">
+                <label class="text-xs font-bold text-gray-800">Jumlah Besar</label>
+                <div id="displayTotal" class="text-lg font-bold text-blue-600">0</div>
+            </div>
+          </div>
+
+        <div class="flex justify-end pt-4">
+            <button type="button" onclick="closeModal()" class="mr-2 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Batal</button>
+            <button type="submit" id="btnSave" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center">
+                <span>Simpan</span>
+                <div id="saveLoader" class="hidden ml-2 loader ease-linear rounded-full border-2 border-t-2 border-white h-4 w-4"></div>
+            </button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script>
-        // --- DATA STRUCTURES & STATE ---
-        let appData = [];
-        
-        // AUTO-INTEGRATION: User provided CSV URL
-        const PROVIDED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQkNBEwjYGMN-y8IAgKze8vy1JHbj6Z99Qxz5YDubYVCIvUkPXlkZcIA4b1Wee3JxItiZGuawbKEltF/pub?gid=1188233547&single=true&output=csv";
-        
-        // Use localStorage URL if set, otherwise fallback to the provided CSV
-        let GAS_URL = localStorage.getItem('GAS_URL') || PROVIDED_CSV_URL;
-        
-        const DEADLINE = new Date('2025-12-31T23:59:59'); // Set deadline date
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // --- KONFIGURASI PENTING ---
+    // GANTI URL INI DENGAN URL WEB APP ANDA SENDIRI
+    const SCRIPT_URL = "GANTI_URL_WEB_APP_ANDA_DI_SINI"; 
 
-        // Mock Data for Demo (Fallback)
-        const mockData = [
-            { id: 1701, name: "Ali bin Abu", ic: "020101-08-1234", index: "202301", class: "PISMP BM 1", lecturer: "Dr. Ahmad", ujian: 25, hp5: 28, hp6: 9, hp8: 18, hp11: 9, total: 89, grade: "A" },
-            { id: 1702, name: "Siti Sarah", ic: "020505-10-5678", index: "202302", class: "PISMP BM 1", lecturer: "Dr. Ahmad", ujian: 20, hp5: 24, hp6: 8, hp8: 15, hp11: 8, total: 75, grade: "A-" }
-        ];
+    // State Aplikasi
+    let currentUser = {
+        role: null, // 'admin' atau 'lecturer'
+        name: null
+    };
+    
+    let allData = []; // Simpan data pelajar secara lokal
 
-        // --- INIT ---
-        window.onload = function() {
-            document.getElementById('gasUrlInput').value = GAS_URL;
+    // --- FUNGSI LOGIN ---
+    function handleLogin(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnLogin');
+        const loader = document.getElementById('loginLoader');
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
 
-            if(GAS_URL) {
-                // Determine mode based on URL type
-                if (GAS_URL.includes("output=csv") || GAS_URL.endsWith(".csv")) {
-                    document.getElementById('mode-indicator').innerText = "LIVE (Google CSV - Read Only)";
-                    document.getElementById('mode-indicator').className = "font-bold text-orange-600";
-                    fetchDataFromGAS(); // Will handle CSV inside
-                } else {
-                    document.getElementById('mode-indicator').innerText = "LIVE (Google Apps Script)";
-                    document.getElementById('mode-indicator').className = "font-bold text-green-600";
-                    fetchDataFromGAS();
-                }
-            } else {
-                // Load Local/Mock
-                const local = localStorage.getItem('localData');
-                appData = local ? JSON.parse(local) : mockData;
-                initializeUI();
-            }
-            checkDeadline();
+        // UI Loading
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+
+        const payload = {
+            action: "login",
+            username: username,
+            password: password
         };
 
-        // --- UI & INTEGRATION FUNCTIONS ---
-
-        // Called after data is loaded to setup dropdowns
-        function initializeUI() {
-            renderTable();
-            updateStats();
-            populateClassDropdown();
-            // Trigger student options update based on initial class selection (if any)
-            updateStudentOptions(); 
-        }
-
-        // 1. Populate Class Dropdown dynamically from CSV Data
-        function populateClassDropdown() {
-            const classSet = new Set();
-            appData.forEach(item => {
-                if (item.class && item.class.trim() !== "") {
-                    classSet.add(item.class.trim());
-                }
-            });
-
-            // Update Input Form Dropdown
-            const inputSelect = document.getElementById('inputClass');
-            const currentVal = inputSelect.value;
-            inputSelect.innerHTML = '<option value="">-- Sila Pilih Kelas --</option>';
-            
-            // Update Filter Dropdown (Table)
-            const filterSelect = document.getElementById('filterClass');
-            const currentFilter = filterSelect.value;
-            filterSelect.innerHTML = '<option value="all">Semua Kelas</option>';
-
-            classSet.forEach(className => {
-                // For Input Form
-                const option1 = document.createElement('option');
-                option1.value = className;
-                option1.textContent = className;
-                inputSelect.appendChild(option1);
-
-                // For Table Filter
-                const option2 = document.createElement('option');
-                option2.value = className;
-                option2.textContent = className;
-                filterSelect.appendChild(option2);
-            });
-        }
-
-        // 2. Filter Students based on selected Class
-        function updateStudentOptions() {
-            const selectedClass = document.getElementById('inputClass').value;
-            const dataList = document.getElementById('studentDataList');
-            const inputName = document.getElementById('inputName');
-            
-            dataList.innerHTML = ''; // Clear previous options
-            inputName.value = ''; // Reset name input
-            resetStudentDetails(); // Clear details
-
-            if (!selectedClass) return;
-
-            // Filter students matching the class
-            const filteredStudents = appData.filter(student => student.class === selectedClass);
-            
-            filteredStudents.forEach(student => {
-                const option = document.createElement('option');
-                option.value = student.name;
-                dataList.appendChild(option);
-            });
-        }
-
-        // 3. Auto-fill IC, Index, Lecturer AND Marks based on selected Name
-        function autoFillStudentDetails() {
-            const selectedName = document.getElementById('inputName').value;
-            const selectedClass = document.getElementById('inputClass').value;
-
-            if (!selectedName) {
-                resetStudentDetails();
-                return;
-            }
-
-            // Find student in data (check name AND class to be safe)
-            const student = appData.find(s => s.name === selectedName && s.class === selectedClass);
-
-            if (student) {
-                document.getElementById('inputIC').value = student.ic || '';
-                document.getElementById('inputIndex').value = student.index || '';
-                document.getElementById('inputLecturer').value = student.lecturer || '';
+        // Guna fetch POST untuk hantar data login
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === 'success') {
+                // Simpan info user
+                currentUser.role = res.role;
+                currentUser.name = res.name;
                 
-                // POPULATE MARKS (If available, otherwise 0 or empty)
-                document.getElementById('markUjian').value = student.ujian || 0;
-                document.getElementById('markHP5').value = student.hp5 || 0;
-                document.getElementById('markHP6').value = student.hp6 || 0;
-                document.getElementById('markHP8').value = student.hp8 || 0;
-                document.getElementById('markHP11').value = student.hp11 || 0;
-
-                // Trigger calculation to update total/grade immediately
-                calculateRealtime();
-            } else {
-                // Name typed manually or not found
-                // Don't clear immediately, user might be adding a new student
-            }
-        }
-
-        function resetStudentDetails() {
-            document.getElementById('inputIC').value = '';
-            document.getElementById('inputIndex').value = '';
-            document.getElementById('inputLecturer').value = '';
-            // Reset Marks too when name clears
-            document.getElementById('markUjian').value = '';
-            document.getElementById('markHP5').value = '';
-            document.getElementById('markHP6').value = '';
-            document.getElementById('markHP8').value = '';
-            document.getElementById('markHP11').value = '';
-            calculateRealtime();
-        }
-
-
-        // --- CORE FUNCTIONS (Existing) ---
-
-        function calculateRealtime() {
-            const ujian = parseFloat(document.getElementById('markUjian').value) || 0;
-            const hp5 = parseFloat(document.getElementById('markHP5').value) || 0;
-            const hp6 = parseFloat(document.getElementById('markHP6').value) || 0;
-            const hp8 = parseFloat(document.getElementById('markHP8').value) || 0;
-            const hp11 = parseFloat(document.getElementById('markHP11').value) || 0;
-
-            const total = ujian + hp5 + hp6 + hp8 + hp11;
-            const grade = getGrade(total);
-
-            document.getElementById('previewTotal').innerText = total.toFixed(1);
-            document.getElementById('previewGrade').innerText = grade;
-            document.getElementById('previewGrade').className = `ml-2 px-3 py-1 rounded font-bold shadow-sm text-white ${getGradeColor(grade)}`;
-        }
-
-        function getGrade(score) {
-            if (score >= 90) return 'A+';
-            if (score >= 80) return 'A';
-            if (score >= 75) return 'A-';
-            if (score >= 70) return 'B+';
-            if (score >= 65) return 'B';
-            if (score >= 60) return 'B-';
-            if (score >= 55) return 'C+';
-            if (score >= 50) return 'C';
-            if (score >= 40) return 'D';
-            return 'E';
-        }
-
-        function getGradeColor(grade) {
-            if (!grade) return 'bg-gray-400';
-            if (grade.startsWith('A')) return 'bg-green-600';
-            if (grade.startsWith('B')) return 'bg-blue-600';
-            if (grade.startsWith('C')) return 'bg-yellow-500';
-            return 'bg-red-600';
-        }
-
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            if (isLocked()) {
-                alert("Sistem telah ditutup. Pengisian markah tidak dibenarkan.");
-                return;
-            }
-
-            // Block saving if using Read-Only CSV
-            if (GAS_URL.includes("output=csv")) {
-                alert("MAKLUMAN: Anda sedang menggunakan mod 'CSV Read-Only'. Data tidak boleh disimpan semula ke pautan ini. Sila gunakan Google Apps Script URL untuk fungsi simpan database.");
-                return;
-            }
-
-            const formData = {
-                name: document.getElementById('inputName').value,
-                ic: document.getElementById('inputIC').value,
-                index: document.getElementById('inputIndex').value,
-                class: document.getElementById('inputClass').value,
-                lecturer: document.getElementById('inputLecturer').value,
-                ujian: parseFloat(document.getElementById('markUjian').value) || 0,
-                hp5: parseFloat(document.getElementById('markHP5').value) || 0,
-                hp6: parseFloat(document.getElementById('markHP6').value) || 0,
-                hp8: parseFloat(document.getElementById('markHP8').value) || 0,
-                hp11: parseFloat(document.getElementById('markHP11').value) || 0,
-                total: parseFloat(document.getElementById('previewTotal').innerText),
-                grade: document.getElementById('previewGrade').innerText,
-                timestamp: new Date().toISOString()
-            };
-
-            const btn = document.getElementById('btnSave');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-            btn.disabled = true;
-
-            if (GAS_URL) {
-                // Send to Google Sheets (Web App)
-                fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                }).then(() => {
-                    alert("Markah berjaya disimpan ke Google Sheet!");
-                    fetchDataFromGAS(); // Refresh
-                    resetForm();
-                }).catch(err => alert("Ralat: " + err))
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                });
-            } else {
-                // Save Locally
-                formData.id = Date.now();
-                appData.push(formData);
-                localStorage.setItem('localData', JSON.stringify(appData));
+                showToast(res.message, 'success');
                 
-                setTimeout(() => {
-                    alert("Disimpan dalam mod simulasi.");
-                    initializeUI(); // Update everything
-                    resetForm();
-                    logAction(`Data ditambah: ${formData.name}`);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }, 500);
+                // Tukar paparan ke dashboard
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainPage').classList.remove('hidden');
+                
+                // Set nama di navbar
+                document.getElementById('userDisplay').textContent = `${res.name} (${res.role.toUpperCase()})`;
+                
+                // Muat turun data pelajar
+                loadData();
+            } else {
+                showToast(res.message, 'error');
             }
+        })
+        .catch(err => {
+            showToast("Ralat sambungan: " + err, 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            loader.classList.add('hidden');
+            loader.classList.remove('flex');
+        });
+    }
+
+    // --- FUNGSI LOGOUT ---
+    function logout() {
+        if(confirm("Adakah anda pasti ingin log keluar?")) {
+            location.reload(); // Refresh page paling mudah untuk clear state
+        }
+    }
+
+    // --- FUNGSI MUAT TURUN DATA (READ) ---
+    function loadData() {
+        const tableBody = document.getElementById('studentTableBody');
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="inline-block loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 mr-2"></div>Memuatkan data...</td></tr>`;
+
+        // Bina URL query string
+        let url = `${SCRIPT_URL}?action=read&role=${currentUser.role}`;
+        if (currentUser.role === 'lecturer') {
+            url += `&name=${encodeURIComponent(currentUser.name)}`;
         }
 
-        function resetForm() {
-            document.getElementById('gradingForm').reset();
-            document.getElementById('previewTotal').innerText = "0.0";
-            document.getElementById('previewGrade').innerText = "-";
-            document.getElementById('previewGrade').className = "ml-2 px-3 py-1 bg-gray-400 text-white rounded font-bold shadow-sm";
-            resetStudentDetails();
+        fetch(url)
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === 'success') {
+                allData = res.data; // Simpan dalam variable global
+                renderTable(allData);
+            } else {
+                showToast("Gagal muat data: " + res.message, 'error');
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Gagal memuatkan data.</td></tr>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Ralat: ${err}</td></tr>`;
+        });
+    }
+
+    function refreshData() {
+        loadData();
+    }
+
+    // --- FUNGSI PAPARAN JADUAL ---
+    function renderTable(data) {
+        const tableBody = document.getElementById('studentTableBody');
+        tableBody.innerHTML = '';
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Tiada rekod dijumpai.</td></tr>`;
+            return;
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = '';
-            
-            const filterClass = document.getElementById('filterClass').value;
-            let filteredData = appData;
-            
-            if (filterClass !== 'all') {
-                filteredData = appData.filter(item => item.class === filterClass);
-            }
+        data.forEach(student => {
+            // Pengiraan mudah untuk paparan
+            const jumPemb = (parseFloat(student.hp5) || 0) + (parseFloat(student.hp6) || 0);
+            const jumProj = (parseFloat(student.hp8) || 0) + (parseFloat(student.hp11) || 0);
 
-            filteredData.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b hover:bg-gray-50 transition";
-                tr.innerHTML = `
-                    <td class="p-3">${index + 1}</td>
-                    <td class="p-3 font-medium">${item.name}</td>
-                    <td class="p-3 text-xs">${item.ic}</td>
-                    <td class="p-3 text-xs">${item.class}</td>
-                    <td class="p-3 text-center bg-blue-50">${item.ujian}</td>
-                    <td class="p-3 text-center bg-green-50">${(item.hp5 + item.hp6).toFixed(1)}</td>
-                    <td class="p-3 text-center bg-yellow-50">${(item.hp8 + item.hp11).toFixed(1)}</td>
-                    <td class="p-3 text-center font-bold">${item.total.toFixed(1)}</td>
-                    <td class="p-3 text-center"><span class="px-2 py-1 rounded text-white text-xs font-bold ${getGradeColor(item.grade)}">${item.grade}</span></td>
-                    <td class="p-3 text-center no-print">
-                        <button onclick="deleteRow(${item.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+            const row = `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${student.name}</div>
+                        <div class="text-sm text-gray-500">${student.ic}</div>
                     </td>
-                `;
-                tbody.appendChild(tr);
-            });
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.class}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${student.lecturer}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${student.ujian}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${jumPemb.toFixed(1)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">${jumProj.toFixed(1)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-blue-600">${student.total}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <button onclick='editStudent(${JSON.stringify(student)})' class="text-indigo-600 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 py-1 px-3 rounded transition">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // --- FUNGSI FILTER/CARIAN ---
+    function filterTable() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allData.filter(student => {
+            return (student.name && student.name.toLowerCase().includes(input)) || 
+                   (student.ic && String(student.ic).includes(input));
+        });
+        renderTable(filtered);
+    }
+
+    // --- FUNGSI MODAL & BORANG ---
+    function openModal() {
+        document.getElementById('studentForm').reset();
+        document.getElementById('modalTitle').textContent = "Tambah Pelajar Baru";
+        document.getElementById('modalForm').classList.remove('hidden');
+        
+        // Auto fill lecturer jika dia pensyarah
+        if (currentUser.role === 'lecturer') {
+            document.getElementById('lecturer').value = currentUser.name;
+        } else {
+            document.getElementById('lecturer').value = ""; // Admin kena isi manual atau buat dropdown lain kali
+            document.getElementById('lecturer').readOnly = false; // Admin boleh edit
         }
+    }
 
-        function updateStats() {
-            if (appData.length === 0) return;
+    function closeModal() {
+        document.getElementById('modalForm').classList.add('hidden');
+    }
 
-            // 1. Calc Mean & StdDev
-            const totals = appData.map(d => d.total);
-            const sum = totals.reduce((a, b) => a + b, 0);
-            const mean = sum / totals.length;
-            
-            const squareDiffs = totals.map(v => Math.pow(v - mean, 2));
-            const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / totals.length;
-            const stdDev = Math.sqrt(avgSquareDiff);
+    function editStudent(student) {
+        openModal();
+        document.getElementById('modalTitle').textContent = "Kemaskini Markah: " + student.name;
+        
+        // Isi borang
+        document.getElementById('name').value = student.name;
+        document.getElementById('ic').value = student.ic;
+        document.getElementById('studentClass').value = student.class;
+        document.getElementById('lecturer').value = student.lecturer;
+        
+        document.getElementById('ujian').value = student.ujian;
+        document.getElementById('hp5').value = student.hp5;
+        document.getElementById('hp6').value = student.hp6;
+        document.getElementById('hp8').value = student.hp8;
+        document.getElementById('hp11').value = student.hp11;
+        
+        // Kunci nama dan IC semasa edit markah untuk elak duplikasi tidak sengaja
+        // Boleh dibuang jika nak benarkan edit nama
+        document.getElementById('name').readOnly = true; 
+        document.getElementById('name').classList.add('bg-gray-100');
+        document.getElementById('ic').readOnly = true;
+        document.getElementById('ic').classList.add('bg-gray-100');
+        
+        calculateTotal();
+    }
 
-            document.getElementById('statMean').innerText = mean.toFixed(2);
-            document.getElementById('statStdDev').innerText = stdDev.toFixed(2);
-            document.getElementById('statCount').innerText = appData.length;
+    // Kira live total dalam modal
+    function calculateTotal() {
+        const u = parseFloat(document.getElementById('ujian').value) || 0;
+        const h5 = parseFloat(document.getElementById('hp5').value) || 0;
+        const h6 = parseFloat(document.getElementById('hp6').value) || 0;
+        const h8 = parseFloat(document.getElementById('hp8').value) || 0;
+        const h11 = parseFloat(document.getElementById('hp11').value) || 0;
+        
+        const total = u + h5 + h6 + h8 + h11;
+        document.getElementById('displayTotal').textContent = total.toFixed(1);
+    }
 
-            // 2. Draw Chart
-            drawHistogram();
-        }
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnSave');
+        const loader = document.getElementById('saveLoader');
+        
+        btn.disabled = true;
+        loader.classList.remove('hidden');
 
-        // --- CANVAS DRAWING (NO LIBRARY) ---
-        function drawHistogram() {
-            const canvas = document.getElementById('gradeChart');
-            if (!canvas.getContext) return;
-            const ctx = canvas.getContext('2d');
-            
-            // Clear
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Kutip data
+        const formData = {
+            action: "save",
+            name: document.getElementById('name').value,
+            ic: document.getElementById('ic').value,
+            class: document.getElementById('studentClass').value,
+            lecturer: document.getElementById('lecturer').value,
+            ujian: document.getElementById('ujian').value,
+            hp5: document.getElementById('hp5').value,
+            hp6: document.getElementById('hp6').value,
+            hp8: document.getElementById('hp8').value,
+            hp11: document.getElementById('hp11').value
+            // Total dikira semula di backend untuk keselamatan
+        };
 
-            // Frequency Logic
-            const gradesOrder = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'E'];
-            const counts = {};
-            gradesOrder.forEach(g => counts[g] = 0);
-            appData.forEach(d => {
-                if (counts[d.grade] !== undefined) counts[d.grade]++;
-                else counts['E']++; // Default fallback
-            });
-
-            const maxCount = Math.max(...Object.values(counts));
-            const barWidth = 50;
-            const gap = 20;
-            const startX = 60;
-            const startY = 350; // Bottom line
-            const maxHeight = 300;
-
-            // Draw Axes
-            ctx.beginPath();
-            ctx.moveTo(startX, 20);
-            ctx.lineTo(startX, startY);
-            ctx.lineTo(canvas.width - 20, startY);
-            ctx.strokeStyle = "#333";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Draw Bars
-            gradesOrder.forEach((grade, i) => {
-                const count = counts[grade];
-                const barHeight = (count / (maxCount || 1)) * maxHeight;
-                const x = startX + gap + (i * (barWidth + gap));
-                const y = startY - barHeight;
-
-                // Bar
-                ctx.fillStyle = count > 0 ? '#3B82F6' : '#E5E7EB'; 
-                ctx.fillRect(x, y, barWidth, barHeight);
-
-                // Label (Grade)
-                ctx.fillStyle = "#000";
-                ctx.font = "bold 12px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(grade, x + (barWidth/2), startY + 20);
-
-                // Value (Count)
-                if (count > 0) {
-                    ctx.fillStyle = "#fff";
-                    ctx.fillText(count, x + (barWidth/2), y + 20);
-                }
-            });
-
-            // Y-Axis Labels
-            ctx.fillStyle = "#666";
-            ctx.textAlign = "right";
-            for(let i=0; i<=5; i++) {
-                const val = Math.round((maxCount/5) * i);
-                const y = startY - ((val/(maxCount || 1)) * maxHeight);
-                ctx.fillText(val, startX - 10, y + 5);
-            }
-        }
-
-        // --- UTILS ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById('view-' + tabName).classList.remove('hidden');
-            
-            // Render specific view logic
-            if (tabName === 'data') renderTable();
-            if (tabName === 'analysis') updateStats();
-        }
-
-        function isLocked() {
-            return new Date() > DEADLINE;
-        }
-
-        function checkDeadline() {
-            if (isLocked()) {
-                document.getElementById('lock-status').innerHTML = '<i class="fas fa-lock mr-1"></i> Sistem Ditutup';
-                document.getElementById('lock-status').className = "text-red-600 font-bold";
-                document.querySelectorAll('input, button[type="submit"]').forEach(el => el.disabled = true);
-            }
-        }
-
-        function logAction(msg) {
-            const box = document.getElementById('systemLog');
-            const time = new Date().toLocaleTimeString();
-            box.innerHTML += `<div>[${time}] ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function saveConfig() {
-            const url = document.getElementById('gasUrlInput').value;
-            localStorage.setItem('GAS_URL', url);
-            location.reload();
-        }
-
-        function openConfigModal() {
-            document.getElementById('configModal').classList.remove('hidden');
-            document.getElementById('gasUrlInput').value = localStorage.getItem('GAS_URL') || '';
-        }
-
-        function deleteRow(id) {
-            if(!confirm("Anda pasti?")) return;
-            if(!GAS_URL || GAS_URL.includes("output=csv")) {
-                if(GAS_URL && GAS_URL.includes("output=csv")) {
-                    alert("Tidak boleh memadam data daripada CSV Read-Only.");
-                } else {
-                    appData = appData.filter(d => d.id !== id);
-                    localStorage.setItem('localData', JSON.stringify(appData));
-                    initializeUI();
-                }
+        // Hantar
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === 'success') {
+                showToast("Data berjaya disimpan!", 'success');
+                closeModal();
+                loadData(); // Refresh table
             } else {
-                alert("Padam data di Google Sheet secara manual untuk keselamatan.");
+                showToast("Ralat: " + res.message, 'error');
             }
+        })
+        .catch(err => {
+            showToast("Ralat sambungan: " + err, 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            loader.classList.add('hidden');
+        });
+    }
+
+    // --- UTILITIES ---
+    function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('hidden');
+        
+        if (type === 'success') {
+            toast.className = "fixed top-5 right-5 z-50 p-4 rounded shadow-lg text-white bg-green-500";
+        } else {
+            toast.className = "fixed top-5 right-5 z-50 p-4 rounded shadow-lg text-white bg-red-500";
         }
-
-        function exportCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Bil,Nama,NoKP,Kelas,Pensyarah,Ujian,HP5,HP6,HP8,HP11,Jumlah,Gred\n";
-            
-            appData.forEach((row, index) => {
-                const rowStr = `${index+1},"${row.name}","${row.ic}","${row.class}","${row.lecturer}",${row.ujian},${row.hp5},${row.hp6},${row.hp8},${row.hp11},${row.total},${row.grade}`;
-                csvContent += rowStr + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "markah_pelajar.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // --- FETCH LOGIC (UPDATED FOR CSV SUPPORT) ---
-        function fetchDataFromGAS() {
-            logAction("Menghubungi pangkalan data...");
-            
-            // Check if it's a CSV URL
-            if (GAS_URL.includes("output=csv")) {
-                fetch(GAS_URL)
-                .then(res => res.text())
-                .then(csvText => {
-                    const parsedData = parseCSV(csvText);
-                    if (parsedData.length > 0) {
-                        appData = parsedData;
-                        initializeUI(); // Init UI with loaded data
-                        logAction("Data CSV berjaya dimuat turun & diintegrasi.");
-                    } else {
-                        logAction("Data CSV kosong atau format salah.");
-                    }
-                })
-                .catch(e => {
-                    logAction("Ralat memuat turun CSV: " + e.message);
-                    console.error(e);
-                });
-            } else {
-                // Standard JSON fetch (existing logic)
-                fetch(GAS_URL)
-                .then(res => res.json())
-                .then(data => {
-                    appData = data;
-                    initializeUI();
-                    logAction("Data berjaya dikemaskini.");
-                })
-                .catch(e => {
-                    logAction("Gagal menyambung ke server. Menggunakan data tempatan.");
-                    console.error(e);
-                });
-            }
-        }
-
-        function parseCSV(text) {
-            const lines = text.split('\n').filter(l => l.trim() !== '');
-            const data = [];
-            
-            // Start loop from 1 to skip Header row
-            for (let i = 1; i < lines.length; i++) {
-                // Regex to split by comma but ignore commas inside quotes
-                const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim());
-                
-                if (row.length < 5) continue; // Skip malformed rows
-
-                // Mapping based on typical Google Sheet export order
-                // Adjust indices based on your specific sheet columns:
-                // 0:Timestamp/Bil, 1:Nama, 2:IC, 3:Index, 4:Kelas, 5:Lecturer, 6:Ujian...
-                
-                try {
-                    data.push({
-                        id: Date.now() + i, 
-                        name: row[1] || "",
-                        ic: row[2] || "",
-                        index: row[3] || "",
-                        class: row[4] || "",
-                        lecturer: row[5] || "",
-                        ujian: parseFloat(row[6]) || 0,
-                        hp5: parseFloat(row[7]) || 0,
-                        hp6: parseFloat(row[8]) || 0,
-                        hp8: parseFloat(row[10]) || 0, // Note: Index 9 usually 'Jumlah Pemb'
-                        hp11: parseFloat(row[11]) || 0,
-                        total: parseFloat(row[13]) || 0, // Note: Index 12 usually 'Jumlah Proj'
-                        grade: row[14] || "-"
-                    });
-                } catch (err) {
-                    console.warn("Skipping row", i, err);
-                }
-            }
-            return data;
-        }
-    </script>
+        
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    }
+  </script>
 </body>
 </html>
